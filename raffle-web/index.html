@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verity Raffle · PulseInput</title>
+    <meta property="og:title" content="Verity Raffle · PulseInput" />
+    <meta property="og:description" content="A raffle on PulseChain testnet whose winner is drawn with Verity verifiable randomness." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pulseinput.com/og-verity.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Verity: verifiable randomness for PulseChain" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="description" content="A raffle on PulseChain testnet whose winner is drawn with Verity verifiable randomness." />
+    <link rel="icon" href="https://pulseinput.com/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="crumbs"><a href="https://pulseinput.com/">PulseInput</a> / <a href="https://pulseinput.com/verity/">Verity</a> / <a href="https://pulseinput.com/verity/use-cases/">Use cases</a> / Raffle</p>
+        <h1>Verity Raffle</h1>
+        <p class="sub">Buy tickets, and when the round closes one Verity random number picks the winner, who takes the whole pot. Nobody can choose or predict the winner, not even the oracle.</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <span class="label">Network</span>
+          <span>PulseChain Testnet v4</span>
+        </div>
+        <div class="row">
+          <button id="connect">Connect wallet</button>
+          <span id="account" class="mono muted"></span>
+        </div>
+        <div id="winnings" class="banner" hidden>
+          <span>You have <strong id="winnings-amount"></strong> in winnings.</span>
+          <button id="withdraw" class="primary small">Withdraw</button>
+        </div>
+        <p id="notice" class="notice" hidden></p>
+      </section>
+
+      <section class="card round">
+        <div class="round-head">
+          <h2 id="round-title">Round</h2>
+          <span id="round-status" class="pill">Loading…</span>
+        </div>
+        <div class="stats">
+          <div><span class="v" id="pot">–</span><span class="l">Pot</span></div>
+          <div><span class="v" id="tickets">–</span><span class="l">Tickets sold</span></div>
+          <div><span class="v" id="mine">–</span><span class="l">Your tickets</span></div>
+          <div><span class="v" id="chance">–</span><span class="l">Your chance</span></div>
+        </div>
+
+        <div id="buy-box" class="buy">
+          <label for="count">Tickets</label>
+          <div class="stepper">
+            <button id="minus" type="button" aria-label="One fewer">−</button>
+            <input id="count" type="number" inputmode="numeric" min="1" max="100" value="1" />
+            <button id="plus" type="button" aria-label="One more">+</button>
+          </div>
+          <button id="buy" class="primary" disabled>Buy</button>
+        </div>
+        <div id="draw-box" class="buy" hidden>
+          <p class="muted small">This round has closed. Anyone can start the draw; the next round opens straight away.</p>
+          <button id="draw" class="primary" disabled>Draw the winner</button>
+        </div>
+        <p class="muted small" id="round-hint"></p>
+
+        <details id="players-box">
+          <summary>Players this round (<span id="players-count">0</span>)</summary>
+          <ul id="players" class="players"></ul>
+        </details>
+      </section>
+
+      <section class="card" id="last-box" hidden>
+        <h2 id="last-title">Last draw</h2>
+        <ol id="steps" class="steps">
+          <li data-step="requested">Draw requested</li>
+          <li data-step="confirming">Waiting for confirmations <span id="conf"></span></li>
+          <li data-step="fulfilled">Proved on-chain and winner picked</li>
+        </ol>
+        <div id="winner-box" class="winner" hidden>
+          <span class="l">Winner</span>
+          <span id="winner" class="mono"></span>
+          <span id="winner-you" class="you" hidden>That's you!</span>
+        </div>
+        <dl id="details" class="details"></dl>
+        <div id="refund-box" class="row" hidden>
+          <p class="muted small">The oracle did not answer in time, so this round is refunded instead of drawn again.</p>
+          <button id="enable-refunds" hidden>Switch round to refunds</button>
+          <button id="refund" class="primary small" hidden>Refund my tickets</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Why the draw is fair</h2>
+        <ul class="facts">
+          <li>Ticket sales stop the moment the draw is requested, so nobody can buy in after seeing anything.</li>
+          <li>The random number depends on a future block hash, so nobody knows it when the draw starts.</li>
+          <li>The Verity node must attach a proof, and the coordinator checks it on-chain before the raffle sees the number.</li>
+          <li>Each round is drawn exactly once. If no answer arrives in time, players get refunds, never a re-draw.</li>
+        </ul>
+      </section>
+
+      <footer class="sub">
+        Every draw is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
+        <a href="%VITE_VERITY_DOCS_URL%/tutorials/raffle">Build your own raffle</a> ·
+        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a>
+        <br />Testnet only: tickets cost test PLS from the <a href="https://faucet.v4.testnet.pulsechain.com">faucet</a>.
+        Verity is the randomness service of <a href="https://pulseinput.com/">PulseInput</a>.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

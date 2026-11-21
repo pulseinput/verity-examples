@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verity Giveaway Picker · PulseInput</title>
+    <meta property="og:title" content="Verity Giveaway Picker · PulseInput" />
+    <meta property="og:description" content="Pick giveaway winners on PulseChain with Verity verifiable randomness. Anyone can check the result." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pulseinput.com/og-verity.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Verity: verifiable randomness for PulseChain" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="description" content="Pick giveaway winners on PulseChain with Verity verifiable randomness. Anyone can check the result." />
+    <link rel="icon" href="https://pulseinput.com/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="crumbs"><a href="https://pulseinput.com/">PulseInput</a> / <a href="https://pulseinput.com/verity/">Verity</a> / <a href="https://pulseinput.com/verity/use-cases/">Use cases</a> / <a href="./">Giveaway picker</a></p>
+        <h1>Verity Giveaway Picker</h1>
+        <p class="sub">Paste a list of wallet addresses and choose how many winners. One Verity random number picks them, and anyone can check the result on-chain. No more "the giveaway was rigged".</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <span class="label">Network</span>
+          <span>PulseChain Testnet v4</span>
+        </div>
+        <div class="row">
+          <button id="connect">Connect wallet</button>
+          <span id="account" class="mono muted"></span>
+        </div>
+        <p id="notice" class="notice" hidden></p>
+      </section>
+
+      <!-- create view -->
+      <section class="card round" id="create-view">
+        <div class="round-head"><h2>New giveaway</h2></div>
+        <label class="field" for="title">Title <span class="muted small">(shown with the result)</span></label>
+        <input id="title" class="text" maxlength="80" placeholder="e.g. 3 NFTs for our Telegram members" />
+
+        <div class="field-head">
+          <label class="field" for="entrants">Entrants</label>
+          <button id="sample" class="link" type="button">Fill with 25 sample addresses</button>
+        </div>
+        <textarea id="entrants" rows="8" spellcheck="false" placeholder="One wallet address per line (commas and spaces also work)&#10;0x…&#10;0x…"></textarea>
+        <p id="parse" class="muted small"></p>
+
+        <div class="buy">
+          <label for="count">Winners</label>
+          <div class="stepper">
+            <button id="minus" type="button" aria-label="One fewer">−</button>
+            <input id="count" type="number" inputmode="numeric" min="1" max="50" value="1" />
+            <button id="plus" type="button" aria-label="One more">+</button>
+          </div>
+          <button id="create" class="primary" disabled>Pick winners</button>
+        </div>
+        <p class="muted small" id="create-hint">The list and the number of winners are fixed in the same transaction that asks for randomness, so they can't be changed once the draw has started.</p>
+      </section>
+
+      <section class="card" id="recent-view">
+        <h2>Recent giveaways</h2>
+        <ul id="recent" class="recent"></ul>
+        <p id="recent-empty" class="muted small" hidden>No giveaways yet. Be the first.</p>
+      </section>
+
+      <!-- result view -->
+      <section class="card round" id="result-view" hidden>
+        <div class="round-head">
+          <h2 id="g-title">Giveaway</h2>
+          <span id="g-status" class="pill">Loading…</span>
+        </div>
+        <p class="muted small" id="g-meta"></p>
+        <ol id="steps" class="steps">
+          <li data-step="requested">List fixed and randomness requested</li>
+          <li data-step="confirming">Waiting for confirmations <span id="conf"></span></li>
+          <li data-step="fulfilled">Proved on-chain and winners picked</li>
+        </ol>
+        <ol id="winners" class="winners" hidden></ol>
+        <div class="row actions">
+          <button id="copy" type="button">Copy link</button>
+          <a class="button" href="./">New giveaway</a>
+        </div>
+      </section>
+
+      <section class="card" id="check-view" hidden>
+        <h2>Check it yourself</h2>
+        <p id="check" class="check"></p>
+        <p class="muted small">How winners are picked: shuffle the positions 0…n−1, taking step <em>i</em> from keccak256(random word, <em>i</em>), and keep the first winners. The contract's <code>winnerIndices</code> function does exactly this, and <code>winnersFrom</code> checks that the list matches the one fixed at creation.</p>
+        <dl id="details" class="details"></dl>
+        <details id="entrants-box">
+          <summary>Entrants (<span id="entrants-count">0</span>)</summary>
+          <ol id="entrant-list" class="entrant-list"></ol>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Why it's fair</h2>
+        <ul class="facts">
+          <li>The list is fixed in the same transaction that requests randomness. Nobody can add or remove a name after the draw starts.</li>
+          <li>The random number depends on a future block hash, so nobody, the organiser included, knows it in advance.</li>
+          <li>Verity proves the number on-chain, and the contract has no way to draw again.</li>
+          <li>Every giveaway is public, with its own link, so a re-run by the organiser would be visible to everyone.</li>
+        </ul>
+      </section>
+
+      <footer class="sub">
+        Every draw is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
+        <a href="%VITE_VERITY_DOCS_URL%/guide/quickstart">Build with Verity</a> ·
+        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a>
+        <br />Testnet only: creating a giveaway costs a little test PLS for gas (<a href="https://faucet.v4.testnet.pulsechain.com">faucet</a>).
+        Verity is the randomness service of <a href="https://pulseinput.com/">PulseInput</a>.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

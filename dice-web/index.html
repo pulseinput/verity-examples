@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verity Dice · PulseInput</title>
+    <meta property="og:title" content="Verity Dice · PulseInput" />
+    <meta name="description" content="Roll a die on PulseChain testnet with Verity verifiable randomness: nobody can predict or choose the result." />
+    <meta property="og:description" content="Roll a die on PulseChain testnet with Verity verifiable randomness: nobody can predict or choose the result." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pulseinput.com/og-verity.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Verity: verifiable randomness for PulseChain" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="https://pulseinput.com/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="crumbs"><a href="https://pulseinput.com/">PulseInput</a> / <a href="https://pulseinput.com/verity/">Verity</a> / <a href="https://pulseinput.com/verity/use-cases/">Use cases</a> / Dice</p>
+        <h1>Verity Dice</h1>
+        <p class="sub">A six-sided die rolled with verifiable randomness. The oracle proves every result on-chain and cannot choose it.</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <label for="network">Network</label>
+          <select id="network">
+            <option value="943">PulseChain Testnet v4</option>
+            <option value="31337">Local Anvil</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="connect">Connect wallet</button>
+          <span id="account" class="mono muted"></span>
+        </div>
+        <div class="row">
+          <label for="confs">Confirmations</label>
+          <select id="confs">
+            <option value="1">1 (fastest)</option>
+            <option value="2">2</option>
+            <option value="3" selected>3 (default)</option>
+            <option value="4">4</option>
+            <option value="5">5 (safest)</option>
+          </select>
+          <span id="confs-hint" class="muted small"></span>
+        </div>
+        <p id="notice" class="notice" hidden></p>
+      </section>
+
+      <section class="card center">
+        <div id="die" aria-hidden="true"></div>
+        <p id="result" class="result" aria-live="polite">Not rolled yet</p>
+        <button id="roll" class="primary" disabled>Roll the die</button>
+      </section>
+
+      <section class="card">
+        <h2>Request</h2>
+        <ol id="steps" class="steps">
+          <li data-step="requested">Requested</li>
+          <li data-step="confirming">Waiting for confirmations <span id="conf"></span></li>
+          <li data-step="fulfilled">Proved and fulfilled</li>
+        </ol>
+        <dl id="details" class="details"></dl>
+      </section>
+      <footer class="sub">
+        Every roll is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
+        <a href="%VITE_VERITY_DOCS_URL%">How it works</a> ·
+        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a>
+        <br />Verity is the randomness service of <a href="https://pulseinput.com/">PulseInput</a>, the oracle network for PulseChain.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

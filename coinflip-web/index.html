@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verity Coin Flip · PulseInput</title>
+    <meta property="og:title" content="Verity Coin Flip · PulseInput" />
+    <meta property="og:description" content="A two-player coin flip on PulseChain testnet settled by Verity verifiable randomness. No house." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pulseinput.com/og-verity.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Verity: verifiable randomness for PulseChain" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="description" content="A two-player coin flip on PulseChain testnet settled by Verity verifiable randomness. No house." />
+    <link rel="icon" href="https://pulseinput.com/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="crumbs"><a href="https://pulseinput.com/">PulseInput</a> / <a href="https://pulseinput.com/verity/">Verity</a> / <a href="https://pulseinput.com/verity/use-cases/">Use cases</a> / <a href="./">Coin flip</a></p>
+        <h1>Verity Coin Flip</h1>
+        <p class="sub">Pick heads or tails and set a stake. Whoever matches it takes the other side, and one Verity random number flips the coin. The winner takes both stakes, and there's no house.</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <span class="label">Network</span>
+          <span>PulseChain Testnet v4</span>
+        </div>
+        <div class="row">
+          <button id="connect">Connect wallet</button>
+          <span id="account" class="mono muted"></span>
+        </div>
+        <div id="owed" class="banner" hidden>
+          <span>You can withdraw <strong id="owed-amount"></strong>.</span>
+          <button id="withdraw" class="primary small">Withdraw</button>
+        </div>
+        <p id="notice" class="notice" hidden></p>
+      </section>
+
+      <!-- current flip (?id=N) -->
+      <section class="card round" id="flip-view" hidden>
+        <div class="round-head">
+          <h2 id="f-title">Flip</h2>
+          <span id="f-status" class="pill">Loading…</span>
+        </div>
+        <div class="coin-stage"><div id="coin" class="coin"><div class="side heads">H</div><div class="side tails">T</div></div></div>
+        <p id="f-result" class="f-result"></p>
+        <div class="versus">
+          <div><span class="l">Heads</span><span id="f-heads" class="mono"></span></div>
+          <div><span class="l">Tails</span><span id="f-tails" class="mono"></span></div>
+        </div>
+        <ol id="steps" class="steps">
+          <li data-step="requested">Both stakes locked and randomness requested</li>
+          <li data-step="confirming">Waiting for confirmations <span id="conf"></span></li>
+          <li data-step="fulfilled">Proved on-chain and coin flipped</li>
+        </ol>
+        <div class="row actions" id="f-actions"></div>
+        <dl id="details" class="details"></dl>
+      </section>
+
+      <!-- create -->
+      <section class="card round" id="create-view">
+        <div class="round-head"><h2>New flip</h2></div>
+        <div class="buy">
+          <span class="label">Your side</span>
+          <div class="toggle" role="radiogroup" aria-label="Your side">
+            <button id="pick-heads" type="button" role="radio" aria-checked="true" class="on">Heads</button>
+            <button id="pick-tails" type="button" role="radio" aria-checked="false">Tails</button>
+          </div>
+        </div>
+        <div class="buy stake-row">
+          <label class="label" for="stake">Stake</label>
+          <input id="stake" class="text stake" type="number" inputmode="decimal" min="0.01" step="0.01" value="0.1" />
+          <span class="muted">tPLS</span>
+          <button id="create" class="primary" disabled>Create flip</button>
+        </div>
+        <p class="muted small">Your stake is held by the contract until someone joins. You can cancel and take it back any time before that.</p>
+      </section>
+
+      <section class="card">
+        <h2>Open flips</h2>
+        <ul id="open" class="flips"></ul>
+        <p id="open-empty" class="muted small" hidden>No open flips right now. Create one above.</p>
+      </section>
+
+      <section class="card">
+        <h2>Recent results</h2>
+        <ul id="recent" class="flips"></ul>
+        <p id="recent-empty" class="muted small" hidden>No flips settled yet.</p>
+      </section>
+
+      <section class="card">
+        <h2>Why it's fair</h2>
+        <ul class="facts">
+          <li>Joining locks both stakes in the same transaction that asks for randomness, so neither player can back out or switch sides.</li>
+          <li>The coin is the random number's last bit, and that number depends on a future block hash: nobody knows it when the flip starts.</li>
+          <li>Verity proves the number on-chain. Each flip is settled once; if no answer arrives in time, both players get their stakes back.</li>
+          <li>There is no house edge and no fee: the winner receives exactly both stakes.</li>
+        </ul>
+      </section>
+
+      <footer class="sub">
+        Every flip is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
+        <a href="%VITE_VERITY_DOCS_URL%/guide/quickstart">Build with Verity</a> ·
+        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a>
+        <br />Testnet only: stakes are test PLS from the <a href="https://faucet.v4.testnet.pulsechain.com">faucet</a>, with no value.
+        Verity is the randomness service of <a href="https://pulseinput.com/">PulseInput</a>.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

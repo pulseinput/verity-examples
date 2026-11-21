@@ -1,0 +1,11 @@
+{
+  "name": "verity-example-contracts",
+  "private": true,
+  "description": "Verity example consumers (Foundry); Verity comes from @pulseinput/contracts",
+  "scripts": {
+    "test": "forge test"
+  },
+  "dependencies": {
+    "@pulseinput/contracts": "0.1.0"
+  }
+}

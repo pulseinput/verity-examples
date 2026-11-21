@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.local
+contracts/lib/forge-std/
+contracts/lib/openzeppelin-contracts/
+contracts/out/
+contracts/cache/

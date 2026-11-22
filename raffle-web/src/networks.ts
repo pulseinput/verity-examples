@@ -20,7 +20,7 @@ export const pulsechainTestnet = defineChain({
 
 export interface Network {
   chain: Chain
-  /** Addresses from verity-contracts/deployments/943.json */
+  /** Verity testnet addresses: https://docs.pulseinput.com/guide/networks */
   coordinator: Address
   raffle: Address
 }

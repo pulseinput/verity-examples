@@ -1,6 +1,6 @@
 import { parseAbi } from 'viem'
 
-/** VerityOrbs (verity-examples/contracts/src/VerityOrbs.sol) */
+/** VerityOrbs (contracts/src/VerityOrbs.sol in this repo) */
 export const orbsAbi = parseAbi([
   'struct Traits { bool revealed; uint8 rarity; uint8 background; uint8 shape; uint8 core; uint8 pattern; }',
   'function mint() payable returns (uint256 tokenId)',

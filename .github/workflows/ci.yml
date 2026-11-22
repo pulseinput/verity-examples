@@ -8,13 +8,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  demos:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        demo: [dice-web, raffle-web, giveaway-web, nft-web, coinflip-web]
     defaults:
       run:
-        working-directory: dice-web
+        working-directory: ${{ matrix.demo }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,7 +27,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: dice-web/package-lock.json
+          cache-dependency-path: ${{ matrix.demo }}/package-lock.json
       - run: npm ci
       - run: npm run build
 
@@ -38,8 +42,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - run: npm ci
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge install foundry-rs/forge-std@v1.17.0 OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-git
       - run: forge fmt --check
       - run: forge test -vvv
-

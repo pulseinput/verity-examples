@@ -41,7 +41,9 @@ const ui = {
   odds: $<HTMLTableSectionElement>('odds'),
   mineBox: $<HTMLElement>('mine-box'),
   mine: $<HTMLDivElement>('mine'),
+  minePager: $<HTMLElement>('mine-pager'),
   recent: $<HTMLDivElement>('recent'),
+  recentPager: $<HTMLElement>('recent-pager'),
   recentEmpty: $<HTMLParagraphElement>('recent-empty'),
 }
 
@@ -148,13 +150,61 @@ async function loadStats() {
   return minted
 }
 
+let lastMinted = 0n
+let recentPage = 0
+
 async function loadRecent(minted: bigint) {
+  lastMinted = minted
   ui.recentEmpty.hidden = minted > 0n
+  const pages = Math.max(1, Math.ceil(Number(minted) / RECENT))
+  recentPage = Math.min(recentPage, pages - 1)
+  // newest first: page 0 shows the latest RECENT Orbs
   const ids: bigint[] = []
-  for (let i = minted; i > 0n && ids.length < RECENT; i--) ids.push(i)
+  for (let i = minted - BigInt(recentPage * RECENT); i > 0n && ids.length < RECENT; i--) ids.push(i)
   const metas = await Promise.all(ids.map((id) => meta(id).catch(() => undefined)))
   ui.recent.replaceChildren(...ids.flatMap((id, k) => (metas[k] ? [tile(id, metas[k]!)] : [])))
+  renderPager(ui.recentPager, recentPage, pages, (p) => {
+    recentPage = p
+    void loadRecent(lastMinted)
+  })
 }
+
+let owned: bigint[] = []
+let minePage = 0
+
+async function showMine() {
+  const pages = Math.max(1, Math.ceil(owned.length / RECENT))
+  minePage = Math.min(minePage, pages - 1)
+  const ids = owned.slice(minePage * RECENT, (minePage + 1) * RECENT)
+  const metas = await Promise.all(ids.map((id) => meta(id).catch(() => undefined)))
+  ui.mine.replaceChildren(...ids.flatMap((id, k) => (metas[k] ? [tile(id, metas[k]!, true)] : [])))
+  renderPager(ui.minePager, minePage, pages, (p) => {
+    minePage = p
+    void showMine()
+  })
+}
+
+// ------------------------------------------------------------------ pagination
+
+/** Draws "← Prev · Page x of y · Next →" into `box` (hidden when there is only one page). */
+function renderPager(box: HTMLElement, page: number, pages: number, onPage: (p: number) => void) {
+  box.hidden = pages <= 1
+  if (box.hidden) return box.replaceChildren()
+  const btn = (label: string, to: number, disabled: boolean) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'small'
+    b.textContent = label
+    b.disabled = disabled
+    b.addEventListener('click', () => onPage(to))
+    return b
+  }
+  const info = document.createElement('span')
+  info.className = 'muted small'
+  info.textContent = `Page ${page + 1} of ${pages}`
+  box.replaceChildren(btn('← Prev', page - 1, page === 0), info, btn('Next →', page + 1, page >= pages - 1))
+}
+
 
 async function loadMine() {
   if (!account) {
@@ -170,10 +220,9 @@ async function loadMine() {
   })
   const candidates = [...new Set(logs.map((l) => l.args.tokenId!))].sort((a, b) => (a > b ? -1 : 1))
   const owners = await Promise.all(candidates.map((id) => read<Address>('ownerOf', [id]).catch(() => undefined)))
-  const owned = candidates.filter((_, k) => owners[k]?.toLowerCase() === account!.toLowerCase())
+  owned = candidates.filter((_, k) => owners[k]?.toLowerCase() === account!.toLowerCase())
   ui.mineBox.hidden = owned.length === 0
-  const metas = await Promise.all(owned.map((id) => meta(id).catch(() => undefined)))
-  ui.mine.replaceChildren(...owned.flatMap((id, k) => (metas[k] ? [tile(id, metas[k]!, true)] : [])))
+  await showMine()
 }
 
 async function refresh() {

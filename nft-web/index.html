@@ -74,11 +74,13 @@
       <section class="card" id="mine-box" hidden>
         <h2>Your Orbs</h2>
         <div id="mine" class="gallery"></div>
+        <nav id="mine-pager" class="pager" aria-label="Your Orbs pages" hidden></nav>
       </section>
 
       <section class="card">
         <h2>Recently minted</h2>
         <div id="recent" class="gallery"></div>
+        <nav id="recent-pager" class="pager" aria-label="Minted Orbs pages" hidden></nav>
         <p id="recent-empty" class="muted small" hidden>No Orbs yet. Mint the first one.</p>
       </section>
 
@@ -95,7 +97,8 @@
       <footer class="sub">
         Every reveal is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
         <a href="%VITE_VERITY_DOCS_URL%/tutorials/nft">Build your own random-trait NFT</a> ·
-        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a>
+        <a href="https://pulseinput.com/verity/use-cases/">More use cases</a> ·
+        <a href="https://github.com/pulseinput/verity-examples/tree/main/nft-web">Source code</a>
         <br />Testnet only: Orbs have no value. Get test PLS for gas from the <a href="https://faucet.v4.testnet.pulsechain.com">faucet</a>.
         Verity is the randomness service of <a href="https://pulseinput.com/">PulseInput</a>.
       </footer>

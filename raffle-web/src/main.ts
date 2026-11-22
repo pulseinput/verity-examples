@@ -47,6 +47,7 @@ const ui = {
   roundHint: $<HTMLParagraphElement>('round-hint'),
   playersCount: $<HTMLSpanElement>('players-count'),
   players: $<HTMLUListElement>('players'),
+  playersPager: $<HTMLElement>('players-pager'),
   lastBox: $<HTMLElement>('last-box'),
   lastTitle: $<HTMLHeadingElement>('last-title'),
   steps: $<HTMLOListElement>('steps'),
@@ -207,15 +208,50 @@ async function loadPlayers(r: bigint) {
   }
   const rows = [...byBuyer.entries()].sort((a, b) => (b[1] > a[1] ? 1 : b[1] < a[1] ? -1 : 0))
   ui.playersCount.textContent = String(rows.length)
-  ui.players.replaceChildren(
-    ...rows.map(([buyer, n]) => {
-      const li = document.createElement('li')
-      const you = account && buyer.toLowerCase() === account.toLowerCase() ? ' <span class="you">you</span>' : ''
-      li.innerHTML = `${explorer('address', buyer, short(buyer))}${you}<span class="n">${n} ticket${n === 1n ? '' : 's'}</span>`
-      return li
-    }),
-  )
+  playerRows = rows.map(([buyer, n]) => {
+    const li = document.createElement('li')
+    const you = account && buyer.toLowerCase() === account.toLowerCase() ? ' <span class="you">you</span>' : ''
+    li.innerHTML = `${explorer('address', buyer, short(buyer))}${you}<span class="n">${n} ticket${n === 1n ? '' : 's'}</span>`
+    return li
+  })
+  showPlayers()
 }
+
+const PLAYERS_PER_PAGE = 20
+let playerRows: HTMLLIElement[] = []
+let playersPage = 0
+
+function showPlayers() {
+  const pages = Math.max(1, Math.ceil(playerRows.length / PLAYERS_PER_PAGE))
+  playersPage = Math.min(playersPage, pages - 1)
+  ui.players.replaceChildren(...playerRows.slice(playersPage * PLAYERS_PER_PAGE, (playersPage + 1) * PLAYERS_PER_PAGE))
+  renderPager(ui.playersPager, playersPage, pages, (p) => {
+    playersPage = p
+    showPlayers()
+  })
+}
+
+// ------------------------------------------------------------------ pagination
+
+/** Draws "← Prev · Page x of y · Next →" into `box` (hidden when there is only one page). */
+function renderPager(box: HTMLElement, page: number, pages: number, onPage: (p: number) => void) {
+  box.hidden = pages <= 1
+  if (box.hidden) return box.replaceChildren()
+  const btn = (label: string, to: number, disabled: boolean) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'small'
+    b.textContent = label
+    b.disabled = disabled
+    b.addEventListener('click', () => onPage(to))
+    return b
+  }
+  const info = document.createElement('span')
+  info.className = 'muted small'
+  info.textContent = `Page ${page + 1} of ${pages}`
+  box.replaceChildren(btn('← Prev', page - 1, page === 0), info, btn('Next →', page + 1, page >= pages - 1))
+}
+
 
 async function loadProof(requestId: bigint, fromBlock: bigint) {
   if (proofs.has(requestId)) return

@@ -51,6 +51,7 @@ const ui = {
   stake: $<HTMLInputElement>('stake'),
   create: $<HTMLButtonElement>('create'),
   open: $<HTMLUListElement>('open'),
+  openPager: $<HTMLElement>('open-pager'),
   openEmpty: $<HTMLParagraphElement>('open-empty'),
   recent: $<HTMLUListElement>('recent'),
   recentEmpty: $<HTMLParagraphElement>('recent-empty'),
@@ -245,13 +246,47 @@ function flipRow(id: bigint, f: Flip, action?: HTMLElement): HTMLLIElement {
   return li
 }
 
+const OPEN_PER_PAGE = 8
+let openRows: HTMLLIElement[] = []
+let openPage = 0
+
+function showOpen() {
+  const pages = Math.max(1, Math.ceil(openRows.length / OPEN_PER_PAGE))
+  openPage = Math.min(openPage, pages - 1)
+  ui.open.replaceChildren(...openRows.slice(openPage * OPEN_PER_PAGE, (openPage + 1) * OPEN_PER_PAGE))
+  renderPager(ui.openPager, openPage, pages, (p) => {
+    openPage = p
+    showOpen()
+  })
+}
+
+// ------------------------------------------------------------------ pagination
+
+/** Draws "← Prev · Page x of y · Next →" into `box` (hidden when there is only one page). */
+function renderPager(box: HTMLElement, page: number, pages: number, onPage: (p: number) => void) {
+  box.hidden = pages <= 1
+  if (box.hidden) return box.replaceChildren()
+  const btn = (label: string, to: number, disabled: boolean) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'small'
+    b.textContent = label
+    b.disabled = disabled
+    b.addEventListener('click', () => onPage(to))
+    return b
+  }
+  const info = document.createElement('span')
+  info.className = 'muted small'
+  info.textContent = `Page ${page + 1} of ${pages}`
+  box.replaceChildren(btn('← Prev', page - 1, page === 0), info, btn('Next →', page + 1, page >= pages - 1))
+}
+
 async function refreshLists() {
   try {
     const flips = await loadFlips()
     const open = flips.filter(({ f }) => f.state === State.Open)
     ui.openEmpty.hidden = open.length > 0
-    ui.open.replaceChildren(
-      ...open.map(({ id, f }) => {
+    openRows = open.map(({ id, f }) => {
         const b = document.createElement('button')
         if (isMe(f.creator)) {
           b.textContent = 'Flip solo'
@@ -263,8 +298,8 @@ async function refreshLists() {
         b.disabled = busy || !account
         b.addEventListener('click', () => void join(id, f.stake))
         return flipRow(id, f, b)
-      }),
-    )
+      })
+    showOpen()
     const done = flips.filter(({ f }) => f.state === State.Settled).slice(0, 10)
     ui.recentEmpty.hidden = done.length > 0
     ui.recent.replaceChildren(...done.map(({ id, f }) => flipRow(id, f)))

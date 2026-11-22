@@ -1,6 +1,6 @@
 import { parseAbi } from 'viem'
 
-/** GiveawayPicker (verity-contracts/src/examples/GiveawayPicker.sol) */
+/** GiveawayPicker (@pulseinput/contracts: verity/examples/GiveawayPicker.sol) */
 export const pickerAbi = parseAbi([
   'struct Giveaway { address creator; uint8 state; uint16 winnerCount; uint32 entrantCount; uint64 createdBlock; bytes32 entrantsHash; uint256 randomWord; }',
   'function giveawayCount() view returns (uint256)',

@@ -168,3 +168,7 @@ input.stake { width: 120px; font-weight: 600; }
 .coin-mini.t { background: #6a00d6; }
 .actions { margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .coin.spin { animation-duration: 2s; } .coin { transition: none; } }
+
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; }
+.pager[hidden] { display: none !important; }
+.pager button:disabled { opacity: .45; cursor: default; }

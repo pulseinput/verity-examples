@@ -28,7 +28,7 @@ export const localAnvil = defineChain({
 
 export interface Network {
   chain: Chain
-  /** Addresses from verity-contracts/deployments/<chainId>.json */
+  /** Verity testnet addresses: https://docs.pulseinput.com/guide/networks */
   coordinator: Address
   dice: Address
   /** First block to search for coordinator events */
@@ -40,7 +40,7 @@ const ZERO = '0x0000000000000000000000000000000000000000'
 export const networks: Record<number, Network> = {
   943: {
     chain: pulsechainTestnet,
-    // VerityCoordinator 1.0.0 (verity-contracts/deployments/943.json) + DiceRoll with per-roll confirmations 1..5 (2026-11-16)
+    // VerityCoordinator 1.0.0 (see https://docs.pulseinput.com/guide/networks) + DiceRoll with per-roll confirmations 1..5 (2026-11-16)
     coordinator: '0xF3cBd70d61a8F5c8522d1377D9208844C3e1f0D7',
     dice: '0xFEeFf3BB39c415b3875CcF93c6f5761145D2F71D',
     startBlock: 25826198n,

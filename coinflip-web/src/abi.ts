@@ -1,6 +1,6 @@
 import { parseAbi } from 'viem'
 
-/** CoinFlip (verity-contracts/src/examples/CoinFlip.sol) */
+/** CoinFlip (@pulseinput/contracts: verity/examples/CoinFlip.sol) */
 export const coinAbi = parseAbi([
   'struct Flip { address creator; uint8 creatorSide; uint8 state; uint8 result; address joiner; uint64 joinedBlock; address winner; uint128 stake; }',
   'function flipCount() view returns (uint256)',

@@ -1,6 +1,6 @@
 import { parseAbi } from 'viem'
 
-/** RaffleRounds (verity-contracts/src/examples/RaffleRounds.sol) */
+/** RaffleRounds (@pulseinput/contracts: verity/examples/RaffleRounds.sol) */
 export const raffleAbi = parseAbi([
   'struct Round { uint8 state; uint64 closesAt; uint64 drawRequestedAt; uint96 tickets; address winner; uint96 winningTicket; uint256 pot; }',
   'struct Entry { address buyer; uint96 end; }',

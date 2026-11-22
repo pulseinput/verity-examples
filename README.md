@@ -4,7 +4,7 @@ Example contracts and live demo apps for **[Verity](https://pulseinput.com/verit
 PulseChain by [PulseInput](https://pulseinput.com). Every demo runs on PulseChain testnet v4 and you can try it in your
 browser.
 
-> **Testnet only.** The demos use test PLS from the [faucet](https://faucet.v4.testnet.pulsechain.com). Do not use Verity
+> **Testnet only.** The demos use test PLS from the [PulseInput faucet](https://app.pulseinput.com/#/faucet). Do not use Verity
 > to secure real value yet.
 
 ## Live demos

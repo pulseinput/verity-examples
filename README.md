@@ -61,6 +61,11 @@ More in the [PulseChain notes](https://docs.pulseinput.com/guide/pulsechain).
 Start with the [10-minute Quickstart](https://docs.pulseinput.com/guide/quickstart), then read
 [Security rules for consumers](https://docs.pulseinput.com/guide/security).
 
+## Community
+
+Questions, ideas or something you built with Verity? Join the PulseInput community on Telegram:
+**[t.me/pulseinput](https://t.me/pulseinput)**. Security issues: please email security@pulseinput.com privately.
+
 ## License
 
 MIT

@@ -12,6 +12,7 @@ import {
 } from 'viem'
 import { ODDS, orbsAbi, RARITIES } from './abi'
 import { network } from './networks'
+import { api, type Page } from './history'
 
 declare global {
   interface Window {
@@ -211,6 +212,23 @@ async function loadMine() {
     ui.mineBox.hidden = true
     return
   }
+  if (network.demosApi) {
+    try {
+      // the demos indexer knows every Orb's current owner; page through all of this wallet's
+      const ids: bigint[] = []
+      for (let page = 0; ; page++) {
+        const p = await api<Page<{ token_id: number }>>(network.demosApi, `/nft/owner/${account}?page=${page}&per=50`)
+        ids.push(...p.items.map((m) => BigInt(m.token_id)))
+        if (page + 1 >= p.pages) break
+      }
+      owned = ids
+      ui.mineBox.hidden = owned.length === 0
+      await showMine()
+      return
+    } catch {
+      /* fall back to searching the chain */
+    }
+  }
   const logs = await pub.getContractEvents({
     address: network.orbs,
     abi: orbsAbi,
@@ -351,7 +369,11 @@ window.ethereum?.on?.('accountsChanged', (accs: Address[]) => {
 ui.mystery.src = MYSTERY
 void (async () => {
   try {
-    const accs = (await window.ethereum?.request({ method: 'eth_accounts' })) as Address[] | undefined
+    // a stuck wallet extension must not keep the page from loading: give it 2 s
+    const accs = (await Promise.race([
+      window.ethereum?.request({ method: 'eth_accounts' }),
+      new Promise((r) => setTimeout(() => r(undefined), 2000)),
+    ])) as Address[] | undefined
     if (accs?.[0]) {
       account = accs[0]
       ui.account.textContent = account

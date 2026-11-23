@@ -14,7 +14,7 @@ export const pulsechainTestnet = defineChain({
       ],
     },
   },
-  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com' } },
+  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com/#' } },
   testnet: true,
 })
 
@@ -33,6 +33,8 @@ export interface Network {
   dice: Address
   /** First block to search for coordinator events */
   startBlock: bigint
+  /** Demos indexer API (roll history); undefined = history lists are hidden */
+  demosApi?: string
 }
 
 const ZERO = '0x0000000000000000000000000000000000000000'
@@ -44,6 +46,7 @@ export const networks: Record<number, Network> = {
     coordinator: '0xF3cBd70d61a8F5c8522d1377D9208844C3e1f0D7',
     dice: '0xFEeFf3BB39c415b3875CcF93c6f5761145D2F71D',
     startBlock: 25826198n,
+    demosApi: 'https://api.pulseinput.com/demos/v1',
   },
   31337: {
     chain: localAnvil,
@@ -63,5 +66,9 @@ export function withUrlOverrides(n: Network): Network {
     const v = q.get(k)
     return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? (v as Address) : undefined
   }
-  return { ...n, coordinator: addr('coordinator') ?? n.coordinator, dice: addr('dice') ?? n.dice }
+  const overridden = !!(addr('coordinator') || addr('dice'))
+  // ?demosApi= picks another indexer; the history is turned off when the page points at other contracts
+  const api = q.get('demosApi')
+  const demosApi = api !== null ? api || undefined : overridden ? undefined : n.demosApi
+  return { ...n, coordinator: addr('coordinator') ?? n.coordinator, dice: addr('dice') ?? n.dice, demosApi }
 }

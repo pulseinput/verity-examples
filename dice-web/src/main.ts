@@ -5,8 +5,11 @@ import {
   fallback,
   createWalletClient,
   custom,
+  encodeAbiParameters,
+  encodePacked,
   formatEther,
   http,
+  keccak256,
   parseEventLogs,
   type Address,
   type EIP1193Provider,
@@ -15,6 +18,7 @@ import {
 import { coordinatorAbi, diceAbi } from './abi'
 import { isDeployed, networks, withUrlOverrides, type Network } from './networks'
 import { Die3D } from './die3d'
+import { api, renderPager, short, timeAgo, type Page, type Vrf } from './history'
 
 declare global {
   interface Window {
@@ -260,3 +264,188 @@ window.ethereum?.on?.('accountsChanged', (accs: Address[]) => {
   void refresh()
 })
 void refresh()
+
+// ------------------------------------------------------------------ everyone's rolls (demos indexer)
+
+interface Roll {
+  request_id: string
+  roller: string
+  req_block: number
+  req_tx: string
+  req_ts: number
+  result: number | null
+  landed_block: number | null
+  landed_tx: string | null
+  vrf: Vrf | null
+}
+
+const hist = {
+  live: $<HTMLElement>('live-card'),
+  rolling: $<HTMLUListElement>('rolling'),
+  rollingEmpty: $<HTMLParagraphElement>('rolling-empty'),
+  pastCard: $<HTMLElement>('past-card'),
+  past: $<HTMLUListElement>('past'),
+  pastEmpty: $<HTMLParagraphElement>('past-empty'),
+  pager: $<HTMLDivElement>('past-pager'),
+  note: $<HTMLParagraphElement>('history-note'),
+  replay: $<HTMLElement>('replay-card'),
+  replayDie: new Die3D($<HTMLDivElement>('replay-die')),
+  replayResult: $<HTMLParagraphElement>('replay-result'),
+  replayAgain: $<HTMLButtonElement>('replay-again'),
+  replayClose: $<HTMLButtonElement>('replay-close'),
+  replayDetails: $<HTMLDListElement>('replay-details'),
+}
+const PER_PAGE = 10
+let pastPage = 0
+let selected: Roll | undefined
+let replayTimer: ReturnType<typeof setTimeout> | undefined
+const appUrl = (import.meta.env.VITE_VERITY_APP_URL as string | undefined)?.replace(/\/$/, '')
+const mono = (v: string) => `<span class="mono">${v}</span>`
+const who = (a: string) => (account && a.toLowerCase() === account.toLowerCase() ? 'you' : short(a))
+
+function rollRow(r: Roll, clickable: boolean): HTMLLIElement {
+  const li = document.createElement('li')
+  const face = document.createElement('span')
+  face.className = `face-mini${r.result ? '' : ' rolling'}`
+  face.textContent = r.result ? String(r.result) : '?'
+  const mid = document.createElement('span')
+  mid.className = 'grow'
+  const conf = r.vrf ? ` · ${r.vrf.min_conf} confirmation${r.vrf.min_conf === 1 ? '' : 's'}` : ''
+  mid.innerHTML = `${r.result ? `Rolled a <b>${r.result}</b>` : 'Rolling…'} by <span class="mono">${who(r.roller)}</span><span class="muted small">${conf}</span>`
+  const when = document.createElement('span')
+  when.className = 'when muted small'
+  when.textContent = timeAgo(r.req_ts)
+  li.append(face, mid, when)
+  if (clickable) {
+    li.className = 'clickable'
+    li.tabIndex = 0
+    li.setAttribute('role', 'button')
+    li.setAttribute('aria-label', `Replay the roll of ${r.result} by ${who(r.roller)}`)
+    if (selected?.request_id === r.request_id) li.classList.add('selected')
+    const open = () => void openReplay(r, li)
+    li.addEventListener('click', open)
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        open()
+      }
+    })
+  }
+  return li
+}
+
+async function loadHistory() {
+  const base = net().demosApi
+  if (!base) {
+    hist.live.hidden = hist.pastCard.hidden = true
+    return
+  }
+  try {
+    const [live, past] = await Promise.all([
+      api<{ items: Roll[] }>(base, '/dice/rolling'),
+      api<Page<Roll>>(base, `/dice/rolls?page=${pastPage}&per=${PER_PAGE}`),
+    ])
+    hist.note.hidden = true
+    hist.live.hidden = hist.pastCard.hidden = false
+    hist.rolling.replaceChildren(...live.items.map((r) => rollRow(r, false)))
+    hist.rollingEmpty.hidden = live.items.length > 0
+    hist.past.replaceChildren(...past.items.map((r) => rollRow(r, true)))
+    hist.pastEmpty.hidden = past.total > 0
+    renderPager(hist.pager, past.page, past.pages, (p) => {
+      pastPage = p
+      void loadHistory()
+    })
+  } catch {
+    hist.note.hidden = false
+  }
+}
+
+function replayDetail(label: string, html: string) {
+  const dt = document.createElement('dt')
+  dt.textContent = label
+  const dd = document.createElement('dd')
+  dd.innerHTML = html
+  hist.replayDetails.append(dt, dd)
+}
+
+/** Tumble for 2 seconds, then land on the roll's number. */
+function playReplay(result: number) {
+  clearTimeout(replayTimer)
+  hist.replayDie.idle()
+  hist.replayDie.tumble()
+  hist.replayResult.textContent = 'Rolling…'
+  replayTimer = setTimeout(async () => {
+    await hist.replayDie.land(result)
+    hist.replayResult.textContent = `It landed on ${result}`
+  }, 2000)
+}
+
+async function openReplay(r: Roll, row?: HTMLLIElement) {
+  if (!r.result) return
+  selected = r
+  hist.past.querySelectorAll('li').forEach((li) => li.classList.remove('selected'))
+  row?.classList.add('selected')
+  hist.replay.hidden = false
+  hist.replayDetails.replaceChildren()
+  hist.replay.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  playReplay(r.result)
+  const v = r.vrf
+  replayDetail('Result', `<b>${r.result}</b>`)
+  replayDetail('Rolled by', explorerLink('address', r.roller))
+  replayDetail('Requested', `block ${r.req_block}, ${new Date(r.req_ts * 1000).toLocaleString()}<br>${explorerLink('tx', r.req_tx)}`)
+  if (!v) return
+  const reqLink = appUrl
+    ? `<a class="mono" href="${appUrl}/#/requests/${v.request_id}" target="_blank" rel="noopener">${v.request_id}</a><br><span class="muted small">opens the request in the Verity explorer</span>`
+    : mono(v.request_id)
+  replayDetail('Request id', reqLink)
+  replayDetail('Confirmations waited', String(v.min_conf))
+  replayDetail('Oracle key hash', mono(v.key_hash))
+  replayDetail('Pre-seed', mono(v.pre_seed))
+  // seed = keccak256(pre-seed ++ hash of the request block), exactly as the coordinator computes it
+  try {
+    const block = await publicClient().getBlock({ blockNumber: BigInt(v.req_block) })
+    if (selected !== r) return
+    const seed = keccak256(encodePacked(['uint256', 'bytes32'], [BigInt(v.pre_seed), block.hash!]))
+    replayDetail('Request block hash', mono(block.hash!))
+    replayDetail('Seed', `${mono(seed)}<br><span class="muted small">keccak256(pre-seed, block hash), recomputed in your browser</span>`)
+  } catch {
+    /* RPC unreachable: skip the recomputed seed */
+  }
+  if (!v.output_seed || !v.word0 || !v.ful_tx) {
+    replayDetail('Proof', 'not answered yet')
+    return
+  }
+  replayDetail('Proof transaction', `block ${v.ful_block}<br>${explorerLink('tx', v.ful_tx)}`)
+  replayDetail('VRF output', mono(v.output_seed))
+  const word = keccak256(encodeAbiParameters([{ type: 'uint256' }, { type: 'uint256' }], [BigInt(v.output_seed), 0n]))
+  const wordOk = word.toLowerCase() === v.word0.toLowerCase()
+  replayDetail(
+    'Random word',
+    `${mono(word)}<br><span class="${wordOk ? 'ok-mark' : 'bad-mark'}">${wordOk ? '✓' : '✕'}</span> <span class="muted small">keccak256(abi.encode(output, 0)), recomputed in your browser</span>`,
+  )
+  const mod = BigInt(word) % 6n
+  const dieOk = Number(mod) + 1 === r.result
+  replayDetail(
+    'Die face',
+    `word mod 6 = ${mod}, plus 1 = <b>${Number(mod) + 1}</b> <span class="${dieOk ? 'ok-mark' : 'bad-mark'}">${dieOk ? '✓ matches the roll' : '✕ does not match'}</span>`,
+  )
+  if (v.payment) replayDetail('Fee charged', `${formatEther(BigInt(v.payment))} ${net().chain.nativeCurrency.symbol}`)
+}
+
+hist.replayAgain.addEventListener('click', () => {
+  if (selected?.result) playReplay(selected.result)
+})
+hist.replayClose.addEventListener('click', () => {
+  clearTimeout(replayTimer)
+  hist.replay.hidden = true
+  selected = undefined
+  hist.past.querySelectorAll('li').forEach((li) => li.classList.remove('selected'))
+})
+ui.network.addEventListener('change', () => {
+  pastPage = 0
+  void loadHistory()
+})
+void loadHistory()
+setInterval(() => {
+  if (document.visibilityState === 'visible') void loadHistory()
+}, 5_000)

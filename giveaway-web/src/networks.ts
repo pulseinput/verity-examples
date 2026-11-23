@@ -14,7 +14,7 @@ export const pulsechainTestnet = defineChain({
       ],
     },
   },
-  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com' } },
+  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com/#' } },
   testnet: true,
 })
 
@@ -25,6 +25,8 @@ export interface Network {
   picker: Address
   /** Block the picker was deployed in (first block to search) */
   startBlock: bigint
+  /** Demos indexer API for the giveaway list; undefined = read the chain */
+  demosApi?: string
 }
 
 const fromUrl = (k: string): Address | undefined => {
@@ -33,9 +35,17 @@ const fromUrl = (k: string): Address | undefined => {
 }
 
 /** GiveawayPicker demo (2026-11-21). ?picker=0x.. in the URL overrides it. */
+/** ?demosApi= picks another indexer; off when the page is pointed at other contracts through the URL. */
+function demosApi(overridden: boolean): string | undefined {
+  const v = new URLSearchParams(location.search).get('demosApi')
+  if (v !== null) return v || undefined
+  return overridden ? undefined : 'https://api.pulseinput.com/demos/v1'
+}
+
 export const network: Network = {
   chain: pulsechainTestnet,
   coordinator: fromUrl('coordinator') ?? '0xF3cBd70d61a8F5c8522d1377D9208844C3e1f0D7',
   picker: fromUrl('picker') ?? '0x500b92B21CbdEA172EF45Af964E1203D7586086A',
   startBlock: 25956712n,
+  demosApi: demosApi(!!(fromUrl('coordinator') || fromUrl('picker'))),
 }

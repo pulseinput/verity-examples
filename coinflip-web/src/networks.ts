@@ -14,7 +14,7 @@ export const pulsechainTestnet = defineChain({
       ],
     },
   },
-  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com' } },
+  blockExplorers: { default: { name: 'PulseScan', url: 'https://scan.v4.testnet.pulsechain.com/#' } },
   testnet: true,
 })
 
@@ -24,6 +24,8 @@ export interface Network {
   coin: Address
   /** Block the coin flip contract was deployed in */
   startBlock: bigint
+  /** Demos indexer API for the lists; undefined = read the chain */
+  demosApi?: string
 }
 
 const fromUrl = (k: string): Address | undefined => {
@@ -32,9 +34,17 @@ const fromUrl = (k: string): Address | undefined => {
 }
 
 /** CoinFlip demo (2026-11-21). ?coinflip=0x.. in the URL overrides it. */
+/** ?demosApi= picks another indexer; off when the page is pointed at other contracts through the URL. */
+function demosApi(overridden: boolean): string | undefined {
+  const v = new URLSearchParams(location.search).get('demosApi')
+  if (v !== null) return v || undefined
+  return overridden ? undefined : 'https://api.pulseinput.com/demos/v1'
+}
+
 export const network: Network = {
   chain: pulsechainTestnet,
   coordinator: fromUrl('coordinator') ?? '0xF3cBd70d61a8F5c8522d1377D9208844C3e1f0D7',
   coin: fromUrl('coinflip') ?? '0x2389E53722809B31844892BAB8500A51326Dd518',
   startBlock: 25957054n,
+  demosApi: demosApi(!!(fromUrl('coordinator') || fromUrl('coinflip'))),
 }

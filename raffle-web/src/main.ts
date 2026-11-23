@@ -13,6 +13,7 @@ import {
 } from 'viem'
 import { coordinatorAbi, raffleAbi, State } from './abi'
 import { network } from './networks'
+import { api, timeAgo, type Page, type Vrf } from './history'
 
 declare global {
   interface Window {
@@ -466,7 +467,11 @@ window.ethereum?.on?.('accountsChanged', (accs: Address[]) => {
 // Reconnect silently if the site is already authorised in the wallet.
 void (async () => {
   try {
-    const accs = (await window.ethereum?.request({ method: 'eth_accounts' })) as Address[] | undefined
+    // a stuck wallet extension must not keep the page from loading: give it 2 s
+    const accs = (await Promise.race([
+      window.ethereum?.request({ method: 'eth_accounts' }),
+      new Promise((r) => setTimeout(() => r(undefined), 2000)),
+    ])) as Address[] | undefined
     if (accs?.[0]) {
       account = accs[0]
       ui.account.textContent = account
@@ -480,6 +485,73 @@ void (async () => {
 
 // Countdown every second; chain state every few seconds (paused while a transaction is in flight).
 setInterval(render, 1000)
+
+// ------------------------------------------------------------------ past rounds (demos indexer)
+
+interface PastRound {
+  round: number
+  tickets: number
+  pot: string
+  players: number
+  state: string
+  winner: string | null
+  winning_ticket: number | null
+  prize: string | null
+  draw_ts: number | null
+  won_ts: number | null
+  won_tx: string | null
+  draw_tx: string | null
+  vrf: Vrf | null
+}
+const PAST_PER_PAGE = 10
+let pastPage = 0
+const appUrl = ((import.meta.env.VITE_VERITY_APP_URL as string | undefined) ?? 'https://app.pulseinput.com').replace(/\/$/, '')
+const pastUi = {
+  box: document.getElementById('past-box') as HTMLElement,
+  list: document.getElementById('past') as HTMLUListElement,
+  empty: document.getElementById('past-empty') as HTMLParagraphElement,
+  pager: document.getElementById('past-pager') as HTMLElement,
+}
+
+function pastRow(r: PastRound): HTMLLIElement {
+  const li = document.createElement('li')
+  const you = r.winner && account && r.winner.toLowerCase() === account.toLowerCase() ? ' <span class="you">you</span>' : ''
+  const when = r.won_ts ?? r.draw_ts
+  let head: string
+  if (r.state === 'won' && r.winner) {
+    head = `<b>Round ${r.round}</b> won by ${explorer('address', r.winner, short(r.winner))}${you} · <b>${pls(BigInt(r.prize ?? r.pot))}</b>`
+  } else if (r.state === 'refunding') {
+    head = `<b>Round ${r.round}</b> no answer in time: players refunded`
+  } else {
+    head = `<b>Round ${r.round}</b> drawing…`
+  }
+  const proof = r.vrf ? ` · <a href="${appUrl}/#/requests/${r.vrf.request_id}" target="_blank" rel="noopener">draw proof</a>` : ''
+  const tx = r.won_tx ? ` · ${explorer('tx', r.won_tx, 'winner tx')}` : ''
+  const ticket = r.winning_ticket !== null && r.state === 'won' ? `winning ticket #${r.winning_ticket + 1} of ${r.tickets}` : `${r.tickets} tickets`
+  li.innerHTML = `<div class="top">${head}<span class="when muted small">${when ? timeAgo(when) : ''}</span></div>
+    <div class="sub2">${ticket} · ${r.players} player${r.players === 1 ? '' : 's'}${proof}${tx}</div>`
+  return li
+}
+
+async function loadPast() {
+  if (!network.demosApi) return
+  try {
+    const p = await api<Page<PastRound>>(network.demosApi, `/raffle/rounds?page=${pastPage}&per=${PAST_PER_PAGE}`)
+    pastUi.box.hidden = false
+    pastUi.list.replaceChildren(...p.items.map(pastRow))
+    pastUi.empty.hidden = p.total > 0
+    renderPager(pastUi.pager, p.page, p.pages, (n) => {
+      pastPage = n
+      void loadPast()
+    })
+  } catch {
+    pastUi.box.hidden = true
+  }
+}
+void loadPast()
+setInterval(() => {
+  if (document.visibilityState === 'visible') void loadPast()
+}, 10_000)
 setInterval(() => {
   if (!busy && document.visibilityState === 'visible') void refresh()
 }, POLL_MS)

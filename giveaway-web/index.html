@@ -64,6 +64,7 @@
       <section class="card" id="recent-view">
         <h2>Recent giveaways</h2>
         <ul id="recent" class="recent"></ul>
+        <nav id="recent-pager" class="pager" aria-label="Giveaway pages" hidden></nav>
         <p id="recent-empty" class="muted small" hidden>No giveaways yet. Be the first.</p>
       </section>
 
@@ -80,6 +81,7 @@
           <li data-step="fulfilled">Proved on-chain and winners picked</li>
         </ol>
         <ol id="winners" class="winners" hidden></ol>
+        <nav id="winners-pager" class="pager" aria-label="Winner pages" hidden></nav>
         <div class="row actions">
           <button id="copy" type="button">Copy link</button>
           <a class="button" href="./">New giveaway</a>
@@ -94,6 +96,7 @@
         <details id="entrants-box">
           <summary>Entrants (<span id="entrants-count">0</span>)</summary>
           <ol id="entrant-list" class="entrant-list"></ol>
+          <nav id="entrants-pager" class="pager" aria-label="Entrant pages" hidden></nav>
         </details>
       </section>
 

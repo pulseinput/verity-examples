@@ -164,7 +164,11 @@ a.button:hover { border-color: var(--accent); }
 .check { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); }
 .check.ok { border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--card)); }
 .check.bad { border-color: var(--warn); color: var(--warn); }
-.entrant-list { margin: 10px 0 0; padding-left: 3.2em; max-height: 300px; overflow-y: auto; display: grid; gap: 4px; }
+.entrant-list { margin: 10px 0 0; padding-left: 3.2em; display: grid; gap: 4px; }
 .entrant-list li { font-size: 13px; }
 .entrant-list li .you { margin-left: 8px; }
 .entrant-list li.won .mono { color: var(--accent); font-weight: 700; }
+
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; }
+.pager[hidden] { display: none !important; }
+.pager button:disabled { opacity: .45; cursor: default; }

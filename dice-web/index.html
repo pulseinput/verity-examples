@@ -65,6 +65,40 @@
         </ol>
         <dl id="details" class="details"></dl>
       </section>
+
+      <section class="card" id="live-card" hidden>
+        <h2>Rolling now</h2>
+        <ul id="rolling" class="rolls"></ul>
+        <p id="rolling-empty" class="muted small">No dice are rolling right now.</p>
+      </section>
+
+      <section class="card" id="past-card" hidden>
+        <h2>Past rolls</h2>
+        <p class="muted small">Pick a roll to replay it and check the numbers behind it.</p>
+        <ul id="past" class="rolls"></ul>
+        <p id="past-empty" class="muted small" hidden>No rolls yet.</p>
+        <div id="past-pager" class="pager"></div>
+      </section>
+
+      <section class="card" id="replay-card" hidden>
+        <div class="replay-head">
+          <h2>Replay</h2>
+          <button id="replay-close" type="button" class="link" aria-label="Close the replay">Close</button>
+        </div>
+        <div class="center">
+          <div id="replay-die" aria-hidden="true"></div>
+          <p id="replay-result" class="result" aria-live="polite"></p>
+          <button id="replay-again" type="button">Replay</button>
+        </div>
+        <h3>How to check this roll</h3>
+        <ol class="verify small">
+          <li>The roll request fixed a <b>pre-seed</b>. Mixed with the hash of the block it was requested in, it gives the <b>seed</b>. Nobody could know that block hash in advance.</li>
+          <li>The oracle answered with a VRF proof for that seed. The coordinator contract checked the proof against the oracle's public key on-chain, in the proof transaction. A wrong or invented number would have made that transaction fail.</li>
+          <li>The proof gives the <b>VRF output</b>. The random word is <span class="mono">keccak256(abi.encode(output, 0))</span>, and the die shows <span class="mono">word mod 6 + 1</span>. Your browser recomputed both below.</li>
+        </ol>
+        <dl id="replay-details" class="details"></dl>
+      </section>
+      <p id="history-note" class="notice" hidden>The roll history is unavailable right now. Rolling still works.</p>
       <footer class="sub">
         Every roll is listed in the <a href="%VITE_VERITY_APP_URL%">Verity explorer</a> ·
         <a href="%VITE_VERITY_DOCS_URL%">How it works</a> ·

@@ -135,3 +135,33 @@ select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid
 .crumbs { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 .crumbs a { color: var(--muted); text-decoration: none; }
 .crumbs a:hover { color: var(--text); text-decoration: underline; }
+
+/* history lists, pager and replay */
+h3 { font-size: 15px; margin: 20px 0 8px; }
+.rolls { list-style: none; margin: 0; padding: 0; }
+.rolls li { display: flex; align-items: center; gap: 12px; padding: 8px 4px; border-top: 1px solid var(--border); }
+.rolls li:first-child { border-top: 0; }
+.rolls li.clickable { cursor: pointer; border-radius: 8px; }
+.rolls li.clickable:hover, .rolls li.clickable:focus-visible { background: color-mix(in srgb, var(--accent) 8%, transparent); outline: none; }
+.rolls li.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.rolls .face-mini {
+  flex: none; width: 32px; height: 32px; border-radius: 7px; display: grid; place-items: center;
+  font-weight: 800; color: var(--accent-text); background: var(--pulse-action);
+}
+.rolls .face-mini.rolling { background: var(--border); color: var(--muted); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rolls .face-mini.rolling { animation: none; } }
+.rolls .grow { flex: 1; min-width: 0; }
+.rolls .when { flex: none; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.pager button { padding: 6px 12px; }
+.replay-head { display: flex; align-items: center; justify-content: space-between; }
+.replay-head h2 { margin: 0; }
+button.link { border: 0; background: none; color: var(--accent); padding: 4px 8px; }
+.verify { color: var(--muted); padding-left: 20px; margin: 0; }
+.verify li { margin-bottom: 6px; }
+.ok-mark { color: var(--ok); font-weight: 700; }
+.bad-mark { color: var(--warn); font-weight: 700; }
+@media (max-width: 520px) { .details { grid-template-columns: 1fr; gap: 2px 0; } .details dd { margin-bottom: 8px; } }
+
+[hidden] { display: none !important; }

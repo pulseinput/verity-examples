@@ -16,6 +16,7 @@ import {
 } from 'viem'
 import { coordinatorAbi, pickerAbi, State } from './abi'
 import { network } from './networks'
+import { api, renderPager, type Page } from './history'
 
 declare global {
   interface Window {
@@ -24,7 +25,7 @@ declare global {
 }
 
 const POLL_MS = 4000
-const RECENT = 8
+const RECENT = 10
 const MAX_ENTRANTS = 2000
 const MAX_WINNERS = 50
 const MAX_TITLE_BYTES = 80
@@ -46,6 +47,9 @@ const ui = {
   create: $<HTMLButtonElement>('create'),
   recent: $<HTMLUListElement>('recent'),
   recentEmpty: $<HTMLParagraphElement>('recent-empty'),
+  recentPager: $<HTMLElement>('recent-pager'),
+  winnersPager: $<HTMLElement>('winners-pager'),
+  entrantsPager: $<HTMLElement>('entrants-pager'),
   resultView: $<HTMLElement>('result-view'),
   gTitle: $<HTMLHeadingElement>('g-title'),
   gStatus: $<HTMLSpanElement>('g-status'),
@@ -248,12 +252,46 @@ async function loadCreated(id: bigint, block: bigint): Promise<Created | undefin
   return c
 }
 
+interface ApiGiveaway {
+  id: number
+  title: string
+  entrant_count: number
+  winner_count: number
+  random_word: string | null
+}
+let recentPage = 0
+
+function recentRow(id: bigint, title: string, winners: number, entrants: number, drawn: boolean): HTMLLIElement {
+  const li = document.createElement('li')
+  const status = drawn ? '<span class="pill open">Drawn</span>' : '<span class="pill">Drawing</span>'
+  li.innerHTML = `<a href="?id=${id}"><span class="t">#${id} ${esc(title)}</span><span class="muted small">${winners} of ${entrants}</span>${status}</a>`
+  return li
+}
+
+/** Newest giveaways, RECENT per page: from the demos indexer, or straight from the chain if it is unreachable. */
 async function loadRecent() {
+  const go = (p: number) => {
+    recentPage = p
+    void loadRecent()
+  }
+  if (network.demosApi) {
+    try {
+      const p = await api<Page<ApiGiveaway>>(network.demosApi, `/giveaway/giveaways?page=${recentPage}&per=${RECENT}`)
+      ui.recentEmpty.hidden = p.total > 0
+      ui.recent.replaceChildren(...p.items.map((g) => recentRow(BigInt(g.id), g.title, g.winner_count, g.entrant_count, !!g.random_word)))
+      renderPager(ui.recentPager, p.page, p.pages, go)
+      return
+    } catch {
+      /* fall back to the chain */
+    }
+  }
   try {
     const total = await read<bigint>('giveawayCount')
     ui.recentEmpty.hidden = total > 0n
+    const pages = Math.max(1, Math.ceil(Number(total) / RECENT))
+    recentPage = Math.min(recentPage, pages - 1)
     const ids: bigint[] = []
-    for (let i = total; i > 0n && ids.length < RECENT; i--) ids.push(i)
+    for (let i = total - BigInt(recentPage * RECENT); i > 0n && ids.length < RECENT; i--) ids.push(i)
     const rows = await Promise.all(
       ids.map(async (id) => {
         const g = await read<Giveaway>('getGiveaway', [id])
@@ -261,14 +299,8 @@ async function loadRecent() {
         return { id, g, c }
       }),
     )
-    ui.recent.replaceChildren(
-      ...rows.map(({ id, g, c }) => {
-        const li = document.createElement('li')
-        const status = g.state === State.Drawn ? '<span class="pill open">Drawn</span>' : '<span class="pill">Drawing</span>'
-        li.innerHTML = `<a href="?id=${id}"><span class="t">#${id} ${esc(c?.title ?? 'Giveaway')}</span><span class="muted small">${g.winnerCount} of ${g.entrantCount}</span>${status}</a>`
-        return li
-      }),
-    )
+    ui.recent.replaceChildren(...rows.map(({ id, g, c }) => recentRow(id, c?.title ?? 'Giveaway', g.winnerCount, g.entrantCount, g.state === State.Drawn)))
+    renderPager(ui.recentPager, recentPage, pages, go)
   } catch (e) {
     ui.recentEmpty.hidden = false
     ui.recentEmpty.textContent = `Could not load recent giveaways: ${errorMessage(e)}`
@@ -340,15 +372,9 @@ async function showGiveaway(id: bigint) {
     const idx = await read<readonly bigint[]>('winnerIndices', [id])
     const list = c?.entrants ?? []
     ui.winners.hidden = false
-    ui.winners.replaceChildren(
-      ...idx.map((i, rank) => {
-        const li = document.createElement('li')
-        const a = list[Number(i)]
-        const you = a && account && a.toLowerCase() === account.toLowerCase() ? '<span class="you">you</span>' : ''
-        li.innerHTML = `<span class="rank">#${rank + 1}</span>${a ? explorer('address', a) : '<span class="muted">unknown</span>'}${you}<span class="muted small pos">entry ${Number(i) + 1}</span>`
-        return li
-      }),
-    )
+    winnersPage = 0
+    renderWinners(list, idx)
+    entrantsPage = 0
     renderEntrants(list, idx)
 
     // the contract recomputes the winners from the published list and checks it matches the one fixed at creation
@@ -385,17 +411,50 @@ async function showGiveaway(id: bigint) {
   }
 }
 
+const WINNERS_PER_PAGE = 10
+const ENTRANTS_PER_PAGE = 25
+let winnersPage = 0
+let entrantsPage = 0
+
+function renderWinners(list: readonly Address[], idx: readonly bigint[]) {
+  const pages = Math.max(1, Math.ceil(idx.length / WINNERS_PER_PAGE))
+  winnersPage = Math.min(winnersPage, pages - 1)
+  const from = winnersPage * WINNERS_PER_PAGE
+  ui.winners.replaceChildren(
+    ...idx.slice(from, from + WINNERS_PER_PAGE).map((i, k) => {
+      const li = document.createElement('li')
+      const a = list[Number(i)]
+      const you = a && account && a.toLowerCase() === account.toLowerCase() ? '<span class="you">you</span>' : ''
+      li.innerHTML = `<span class="rank">#${from + k + 1}</span>${a ? explorer('address', a) : '<span class="muted">unknown</span>'}${you}<span class="muted small pos">entry ${Number(i) + 1}</span>`
+      return li
+    }),
+  )
+  renderPager(ui.winnersPager, winnersPage, pages, (p) => {
+    winnersPage = p
+    renderWinners(list, idx)
+  })
+}
+
 function renderEntrants(list: readonly Address[], winners: readonly bigint[]) {
   const win = new Set(winners.map(Number))
   ui.entrantsCount.textContent = String(list.length)
+  const pages = Math.max(1, Math.ceil(list.length / ENTRANTS_PER_PAGE))
+  entrantsPage = Math.min(entrantsPage, pages - 1)
+  const from = entrantsPage * ENTRANTS_PER_PAGE
+  ui.entrantList.start = from + 1
   ui.entrantList.replaceChildren(
-    ...list.map((a, i) => {
+    ...list.slice(from, from + ENTRANTS_PER_PAGE).map((a, k) => {
+      const i = from + k
       const li = document.createElement('li')
       li.className = win.has(i) ? 'won' : ''
       li.innerHTML = `<span class="mono">${a}</span>${win.has(i) ? '<span class="you">winner</span>' : ''}`
       return li
     }),
   )
+  renderPager(ui.entrantsPager, entrantsPage, pages, (p) => {
+    entrantsPage = p
+    renderEntrants(list, winners)
+  })
 }
 
 // ------------------------------------------------------------------ routing + wiring
@@ -454,7 +513,11 @@ window.ethereum?.on?.('accountsChanged', (accs: Address[]) => {
 
 void (async () => {
   try {
-    const accs = (await window.ethereum?.request({ method: 'eth_accounts' })) as Address[] | undefined
+    // a stuck wallet extension must not keep the page from loading: give it 2 s
+    const accs = (await Promise.race([
+      window.ethereum?.request({ method: 'eth_accounts' }),
+      new Promise((r) => setTimeout(() => r(undefined), 2000)),
+    ])) as Address[] | undefined
     if (accs?.[0]) {
       account = accs[0]
       ui.account.textContent = account

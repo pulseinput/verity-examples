@@ -15,6 +15,7 @@ import {
 } from 'viem'
 import { coinAbi, coordinatorAbi, Side, SIDES, State } from './abi'
 import { network } from './networks'
+import { api, type Page } from './history'
 
 declare global {
   interface Window {
@@ -55,6 +56,7 @@ const ui = {
   openEmpty: $<HTMLParagraphElement>('open-empty'),
   recent: $<HTMLUListElement>('recent'),
   recentEmpty: $<HTMLParagraphElement>('recent-empty'),
+  recentPager: $<HTMLElement>('recent-pager'),
 }
 
 type Flip = {
@@ -246,7 +248,7 @@ function flipRow(id: bigint, f: Flip, action?: HTMLElement): HTMLLIElement {
   return li
 }
 
-const OPEN_PER_PAGE = 8
+const OPEN_PER_PAGE = 5
 let openRows: HTMLLIElement[] = []
 let openPage = 0
 
@@ -281,10 +283,70 @@ function renderPager(box: HTMLElement, page: number, pages: number, onPage: (p: 
   box.replaceChildren(btn('← Prev', page - 1, page === 0), info, btn('Next →', page + 1, page >= pages - 1))
 }
 
+// ------------------------------------------------------------------ lists: demos indexer first, the chain as fallback
+
+const OPEN_LIMIT = 10
+const RECENT_PER_PAGE = 10
+let recentPage = 0
+const STATE_OF: Record<string, number> = {
+  open: State.Open,
+  flipping: State.Flipping,
+  settled: State.Settled,
+  cancelled: State.Cancelled,
+  refunded: State.Refunded,
+}
+interface ApiFlip {
+  id: number
+  creator: string
+  side: number
+  stake: string
+  joiner: string | null
+  joined_block: number | null
+  state: string
+  result: number | null
+  winner: string | null
+}
+const toFlip = (a: ApiFlip): Flip => ({
+  creator: a.creator as Address,
+  creatorSide: a.side,
+  state: STATE_OF[a.state] ?? State.None,
+  result: a.result ?? 0,
+  joiner: (a.joiner ?? ZERO) as Address,
+  joinedBlock: BigInt(a.joined_block ?? 0),
+  winner: (a.winner ?? ZERO) as Address,
+  stake: BigInt(a.stake),
+})
+type Listed = { id: bigint; f: Flip }
+
+async function loadLists(): Promise<{ open: Listed[]; done: Listed[]; donePage: number; donePages: number }> {
+  if (network.demosApi) {
+    try {
+      const [o, d] = await Promise.all([
+        api<{ items: ApiFlip[] }>(network.demosApi, `/coinflip/open?limit=${OPEN_LIMIT}`),
+        api<Page<ApiFlip>>(network.demosApi, `/coinflip/flips?state=settled&page=${recentPage}&per=${RECENT_PER_PAGE}`),
+      ])
+      const map = (a: ApiFlip): Listed => ({ id: BigInt(a.id), f: toFlip(a) })
+      return { open: o.items.map(map), done: d.items.map(map), donePage: d.page, donePages: d.pages }
+    } catch {
+      /* indexer unreachable: read the newest flips from the chain instead */
+    }
+  }
+  const flips = await loadFlips()
+  const settled = flips.filter(({ f }) => f.state === State.Settled)
+  const pages = Math.max(1, Math.ceil(settled.length / RECENT_PER_PAGE))
+  recentPage = Math.min(recentPage, pages - 1)
+  return {
+    open: flips.filter(({ f }) => f.state === State.Open).slice(0, OPEN_LIMIT),
+    done: settled.slice(recentPage * RECENT_PER_PAGE, (recentPage + 1) * RECENT_PER_PAGE),
+    donePage: recentPage,
+    donePages: pages,
+  }
+}
+
 async function refreshLists() {
   try {
-    const flips = await loadFlips()
-    const open = flips.filter(({ f }) => f.state === State.Open)
+    const lists = await loadLists()
+    const open = lists.open
     ui.openEmpty.hidden = open.length > 0
     openRows = open.map(({ id, f }) => {
         const b = document.createElement('button')
@@ -300,9 +362,12 @@ async function refreshLists() {
         return flipRow(id, f, b)
       })
     showOpen()
-    const done = flips.filter(({ f }) => f.state === State.Settled).slice(0, 10)
-    ui.recentEmpty.hidden = done.length > 0
-    ui.recent.replaceChildren(...done.map(({ id, f }) => flipRow(id, f)))
+    ui.recentEmpty.hidden = lists.done.length > 0
+    ui.recent.replaceChildren(...lists.done.map(({ id, f }) => flipRow(id, f)))
+    renderPager(ui.recentPager, lists.donePage, lists.donePages, (p) => {
+      recentPage = p
+      void refreshLists()
+    })
     if (account) {
       const owed = await read<bigint>('balances', [account])
       ui.owed.hidden = owed === 0n
@@ -500,7 +565,11 @@ window.ethereum?.on?.('accountsChanged', (accs: Address[]) => {
 
 void (async () => {
   try {
-    const accs = (await window.ethereum?.request({ method: 'eth_accounts' })) as Address[] | undefined
+    // a stuck wallet extension must not keep the page from loading: give it 2 s
+    const accs = (await Promise.race([
+      window.ethereum?.request({ method: 'eth_accounts' }),
+      new Promise((r) => setTimeout(() => r(undefined), 2000)),
+    ])) as Address[] | undefined
     if (accs?.[0]) {
       account = accs[0]
       ui.account.textContent = account

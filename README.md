@@ -64,7 +64,7 @@ Start with the [10-minute Quickstart](https://docs.pulseinput.com/guide/quicksta
 ## Community
 
 Questions, ideas or something you built with Verity? Join the PulseInput community on Telegram:
-**[t.me/pulseinput](https://t.me/pulseinput)**. Security issues: please email security@pulseinput.com privately.
+**[t.me/pulseinput](https://t.me/pulseinput)**. News and updates on X: **[@pulseinput](https://x.com/pulseinput)**. Security issues: please email security@pulseinput.com privately.
 
 ## License
 
